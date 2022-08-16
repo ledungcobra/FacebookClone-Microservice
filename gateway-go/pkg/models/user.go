@@ -14,6 +14,7 @@ type User struct {
 	BirthDay   int    `gorm:"column:birth_day;type:int;not null;default:0"`
 	BirthMonth int    `gorm:"column:birth_month;type:int;not null;default:0"`
 	Verified   bool   `gorm:"column:verified;type:boolean;not null;default:false"`
+	Gender     string `gorm:"column:gender;type:varchar(10);not null"`
 
 	Follower  []User `gorm:"many2many:user_followers;"`
 	Following []User `gorm:"many2many:user_following;"`

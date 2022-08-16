@@ -1,36 +1,81 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"log"
+	"os"
+	"strconv"
 
-type config struct {
-	MongoURL string
-	SqlDsn   string
-	Port     string
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	MongoURL    string
+	SqlDsn      string
+	ServerPort  string
+	GatewayCost int
 }
 
-var Config *config
 
-func Load() {
+var Cfg *Config
 
-	defaultPort := os.Getenv("GATEWAY_PORT")
-	if defaultPort == "" {
-		defaultPort = "8080"
+
+func init() {
+	c := &Config{}
+	log.Println("Loading env from .env file")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Print("Error loading .env file", err)
 	}
+	c.loadServerPort()
+	c.loadMongoDbURL()
+	c.loadPostgresURL()
+	c.GatewayCost = c.mustLoadEnvInt("GATEWAY_BCRYPT_COST")
+}
 
-	mongoUrl := os.Getenv("GATEWAY_MONGO_URL")
-	if mongoUrl == "" {
-		mongoUrl = "mongodb://localhost:27017"
+func (c *Config) loadPostgresURL() {
+	pgUser := c.mustLoadEnv("GATEWAY_POSTRES_USER")
+	pgPassword := c.mustLoadEnv("GATEWAY_POSTRES_PASSWORD")
+	pgDatabase := c.mustLoadEnv("GATEWAY_POSTRES_DATABASE")
+	pgHost := c.mustLoadEnv("GATEWAY_POSTRES_HOST")
+	pgPort := c.mustLoadEnv("GATEWAY_POSTRES_PORT")
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", pgHost, pgUser, pgPassword, pgDatabase, pgPort)
+	c.SqlDsn = dsn
+}
+
+func (c *Config) loadMongoDbURL() {
+	c.MongoURL = c.loadEnvOrDefault("GATEWAY_MONGO_URL", "mongodb://localhost:27017")
+}
+
+func (c *Config) loadServerPort() {
+	c.ServerPort = c.loadEnvOrDefault("GATEWAY_PORT", "8080")
+}
+
+func (c *Config) loadEnvOrDefault(key string, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
 	}
+	return value
+}
 
-	sqlDsn := os.Getenv("GATEWAY_SQL_DSN")
-	
-	if sqlDsn == "" {
-		sqlDsn = "root:root@tcp(localhost:3306)/gateway"
+func (c *Config) mustLoadEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatal("Environment variable " + key + " is not set")
 	}
+	return value
+}
 
-	Config = &config{
-		Port:     defaultPort,
-		MongoURL: mongoUrl,
+func (c *Config) mustLoadEnvInt(key string) int {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatal("Environment variable " + key + " is not set")
 	}
-
+	parsedInt, err := strconv.Atoi(value)
+	if err != nil {
+		log.Fatal("Environment variable " + key + " is not a valid integer")
+	}
+	return parsedInt
 }

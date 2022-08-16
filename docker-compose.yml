@@ -12,6 +12,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
+    networks:
+      - postgres
   mongodb:
     image: mongo
     ports:
@@ -23,3 +25,15 @@ services:
       - MONGO_INITDB_DATABASE=test
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=root
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "4000:80"
+    environment: 
+      - PGADMIN_DEFAULT_EMAIL=ledungcobra@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=ledungcobra
+    networks:
+      - postgres
+networks:
+  postgres: 
+    driver: bridge
