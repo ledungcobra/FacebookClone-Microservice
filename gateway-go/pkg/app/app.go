@@ -29,6 +29,7 @@ type App struct {
 // Initialize
 func (a *App) Initialize() error {
 	log.Println("Initializing server...")
+	config.Init()
 	a.config = config.Cfg
 	a.setupDatabase(a.config)
 	a.setupWebServer()

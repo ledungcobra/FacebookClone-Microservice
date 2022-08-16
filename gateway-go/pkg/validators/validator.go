@@ -1,6 +1,7 @@
 package validators
 
 import (
+	"ledungcobra/gateway-go/pkg/common"
 	"reflect"
 	"strings"
 )
@@ -13,16 +14,23 @@ type IValidator interface {
 const (
 	EmailErrMessage   = "Email is not valid"
 	RegexErrMessage   = "Input is not valid"
-	Regex             = "regex"
-	Email             = "email"
 	ValidtorTag       = "validator"
 	TagPropSeperator  = ";"
 	TagFieldSeperator = ":"
+	Regex             = "regex"
+	Email             = "email"
+	Min               = "min"
+	Max               = "max"
+	Range             = "range"
+	NotBlank          = "not_blank"
+	Length            = "length"
+	NotNil            = "not_nil"
+	In                = "in"
 )
 
 type ValidationResult struct {
-	fieldName string
-	errors    []string
+	Field  string   `json:"field"`
+	Errors []string `json:"errors"`
 }
 
 // Validate the object passed in function by looking validator tag
@@ -30,37 +38,39 @@ type ValidationResult struct {
 func Validate(object any) (bool, []ValidationResult) {
 	objType := reflect.TypeOf(object)
 	objValue := reflect.ValueOf(object)
+	if objType.Kind() == reflect.Pointer {
+		objType = objType.Elem()
+		objValue = objValue.Elem()
+	}
 	numFields := objType.NumField()
 	var validationResults []ValidationResult
 	for fieldIndex := 0; fieldIndex < numFields; fieldIndex++ {
-		curField, curValue := extractFieldAndValue(objType, fieldIndex, objValue)
+		curField, curValue := extractFieldAndValue(objType, objValue, fieldIndex)
 		tagValidators := curField.Tag.Get(ValidtorTag)
 		tagFieldItems := strings.Split(tagValidators, TagPropSeperator)
 		validators := extractValidators(tagFieldItems, curValue)
-		fieldValidatorResult := getFieldValidatorResult(validators, curField)
-		if fieldValidatorResult != nil {
-			validationResults = append(validationResults, *fieldValidatorResult)
+		validationResult := validateCurField(validators, curField)
+		if validationResult != nil {
+			validationResults = append(validationResults, *validationResult)
 		}
 	}
 	return len(validationResults) == 0, validationResults
 }
 
-func extractFieldAndValue(objType reflect.Type, i int, objValue reflect.Value) (reflect.StructField, reflect.Value) {
-	currentField := objType.Field(i)
-	curValue := objValue.Field(i)
-	return currentField, curValue
+func extractFieldAndValue(objType reflect.Type, objValue reflect.Value, i int) (reflect.StructField, reflect.Value) {
+	return objType.Field(i), objValue.Field(i)
 }
 
 func extractValidators(tagFieldItems []string, curValue reflect.Value) []IValidator {
 	var validators []IValidator
 	for _, tagFieldItem := range tagFieldItems {
 		tagFieldName, tagFieldValue := extractTagFieldAndValue(strings.Split(tagFieldItem, TagFieldSeperator))
-		validators = append(validators, mapToCorrespondingValidator(tagFieldName, curValue, tagFieldValue))
+		validators = append(validators, mapToCorrespondingValidator(tagFieldName, tagFieldValue, curValue))
 	}
 	return validators
 }
 
-func getFieldValidatorResult(validators []IValidator, curField reflect.StructField) *ValidationResult {
+func validateCurField(validators []IValidator, curField reflect.StructField) *ValidationResult {
 	var errors []string
 	for _, validator := range validators {
 		if !validator.Validate() {
@@ -69,24 +79,48 @@ func getFieldValidatorResult(validators []IValidator, curField reflect.StructFie
 	}
 	if len(errors) > 0 {
 		return &ValidationResult{
-			fieldName: curField.Name,
-			errors:    errors,
+			Field:  common.ToSnakeCase(curField.Name),
+			Errors: errors,
 		}
 	}
 	return nil
 }
 
-func mapToCorrespondingValidator(tagFieldName string, curValue reflect.Value, tagFieldValue string) IValidator {
-	var curValidator IValidator
+func mapToCorrespondingValidator(tagFieldName string, tagFieldValue string, curValue reflect.Value) IValidator {
 	switch tagFieldName {
 	case Email:
-		curValidator = NewEmailValidator(curValue.String())
+		return NewEmailValidator(curValue.String())
 	case Regex:
-		curValidator = NewRegexValidator(tagFieldValue, curValue.String(), RegexErrMessage)
+		return NewRegexValidator(tagFieldValue, curValue.String(), RegexErrMessage)
+	case Min:
+		return NewMinValidator(int(curValue.Int()), common.ToInt(tagFieldName))
+	case Max:
+		return NewMaxValidator(int(curValue.Int()), common.ToInt(tagFieldName))
+	case Range:
+		min, max := extractMinMax(tagFieldValue)
+		return NewRangeValidator(int(curValue.Int()), min, max)
+	case NotBlank:
+		return NewNotBlankValidator(curValue.String())
+	case Length:
+		min, max := extractMinMax(tagFieldValue)
+		return NewLengthValidator(curValue.String(), min, max)
+	case NotNil:
+		return NewNotNilValidator(curValue)
+	case In:
+		return NewInValidator(curValue.String(), toList(tagFieldValue))
 	default:
-		curValidator = defaultValidator
+		return defaultValidator
 	}
-	return curValidator
+}
+
+func toList(str string) []string {
+	return strings.Split(str, ",")
+}
+func extractMinMax(tagFieldValue string) (int, int) {
+	rangeTokens := strings.Split(tagFieldValue, "-")
+	min := common.ToInt(rangeTokens[0])
+	max := common.ToInt(rangeTokens[1])
+	return min, max
 }
 
 func extractTagFieldAndValue(tagField []string) (string, string) {

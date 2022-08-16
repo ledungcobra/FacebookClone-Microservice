@@ -41,7 +41,7 @@ func TestValidate(t *testing.T) {
 			},
 			isValid: false,
 			validatorResults: []ValidationResult{
-				{fieldName: "Regex", errors: []string{RegexErrMessage}},
+				{Field: "regex", Errors: []string{RegexErrMessage}},
 			},
 		},
 		{
@@ -54,7 +54,7 @@ func TestValidate(t *testing.T) {
 			},
 			isValid: false,
 			validatorResults: []ValidationResult{
-				{fieldName: "Email", errors: []string{EmailErrMessage}},
+				{Field: "email", Errors: []string{EmailErrMessage}},
 			},
 		},
 		{
@@ -67,8 +67,8 @@ func TestValidate(t *testing.T) {
 			},
 			isValid: false,
 			validatorResults: []ValidationResult{
-				{fieldName: "Email", errors: []string{EmailErrMessage}},
-				{fieldName: "Regex", errors: []string{RegexErrMessage}},
+				{Field: "email", Errors: []string{EmailErrMessage}},
+				{Field: "regex", Errors: []string{RegexErrMessage}},
 			},
 		},
 	}

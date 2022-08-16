@@ -2,6 +2,7 @@ package validators
 
 import (
 	"regexp"
+	"strings"
 )
 
 type RegexValidator struct {
@@ -11,7 +12,7 @@ type RegexValidator struct {
 }
 
 func NewRegexValidator(pattern, value string, errorMsg string) IValidator {
-	regex := regexp.MustCompile(pattern)
+	regex := regexp.MustCompile(strings.Replace(pattern, `\\`, `\`, -1))
 	return &RegexValidator{
 		regex: regex,
 		value: value,

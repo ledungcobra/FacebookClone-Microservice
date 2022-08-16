@@ -16,21 +16,19 @@ type Config struct {
 	GatewayCost int
 }
 
-
 var Cfg *Config
 
-
-func init() {
-	c := &Config{}
+func Init() {
+	Cfg = &Config{}
 	log.Println("Loading env from .env file")
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Print("Error loading .env file", err)
 	}
-	c.loadServerPort()
-	c.loadMongoDbURL()
-	c.loadPostgresURL()
-	c.GatewayCost = c.mustLoadEnvInt("GATEWAY_BCRYPT_COST")
+	Cfg.loadServerPort()
+	Cfg.loadMongoDbURL()
+	Cfg.loadPostgresURL()
+	Cfg.GatewayCost = Cfg.mustLoadEnvInt("GATEWAY_BCRYPT_COST")
 }
 
 func (c *Config) loadPostgresURL() {
