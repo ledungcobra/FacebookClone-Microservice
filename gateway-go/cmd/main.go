@@ -1,9 +1,10 @@
 package main
 
 import (
-	"ledungcobra/gateway-go/pkg/app"
 	"log"
 	"os"
+
+	"ledungcobra/gateway-go/pkg/app"
 )
 
 func main() {

@@ -1,22 +1,19 @@
 package app
 
 import (
+	"log"
+
+	"ledungcobra/gateway-go/pkg/interfaces"
+
 	"ledungcobra/gateway-go/pkg/config"
 	"ledungcobra/gateway-go/pkg/database"
 	"ledungcobra/gateway-go/pkg/middlewares"
 	"ledungcobra/gateway-go/pkg/routes"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-type IServer interface {
-	Initialize() error
-	Listen() error
-	Stop() error
-}
-
-func NewServer() IServer {
+func NewServer() interfaces.IServer {
 	return &App{}
 }
 

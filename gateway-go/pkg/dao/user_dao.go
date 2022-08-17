@@ -7,14 +7,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserError struct {
+var (
+	ErrRecordNotFound = DBError{Message: "Record not found"}
+)
+
+type DBError struct {
 	Message string
 	err     error
 }
 
-// Error implements error
-func (u UserError) Error() string {
-	return u.Message + ": " + u.err.Error()
+func (db DBError) Error() string {
+	return db.Message + ": " + db.err.Error()
 }
 
 type UserDAO struct {
@@ -27,9 +30,16 @@ func NewUserDao(db *gorm.DB) i.IUserDAO {
 	}
 }
 
+func (u *UserDAO) Find(user *models.User, query any, args any) error {
+	if result := u.db.Where(query, args).First(user); result.Error != nil && result.Error == gorm.ErrRecordNotFound {
+		return ErrRecordNotFound
+	}
+	return nil
+}
+
 func (u *UserDAO) SaveUser(user *models.User) error {
 	if result := u.db.Save(&user); result.Error != nil {
-		return UserError{"Cannot save user", result.Error}
+		return handleError(result.Error)
 	}
 	return nil
 }

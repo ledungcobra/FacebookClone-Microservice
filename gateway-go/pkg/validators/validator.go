@@ -1,9 +1,10 @@
 package validators
 
 import (
-	"ledungcobra/gateway-go/pkg/common"
 	"reflect"
 	"strings"
+
+	"ledungcobra/gateway-go/pkg/common"
 )
 
 type IValidator interface {

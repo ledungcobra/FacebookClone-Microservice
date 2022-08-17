@@ -1,8 +1,9 @@
 package database
 
 import (
-	"ledungcobra/gateway-go/pkg/models"
 	"log"
+
+	"ledungcobra/gateway-go/pkg/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
