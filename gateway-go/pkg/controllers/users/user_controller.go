@@ -1,15 +1,17 @@
 package users
 
 import (
+	"fmt"
+	"ledungcobra/gateway-go/pkg/controllers/users/response"
+	"ledungcobra/gateway-go/pkg/htmltemplates"
 	"log"
+	"os"
 	"time"
 
 	"ledungcobra/gateway-go/pkg/common"
-	"ledungcobra/gateway-go/pkg/config"
 	"ledungcobra/gateway-go/pkg/controllers/base"
 	"ledungcobra/gateway-go/pkg/controllers/users/request"
 	"ledungcobra/gateway-go/pkg/interfaces"
-	"ledungcobra/gateway-go/pkg/models"
 	"ledungcobra/gateway-go/pkg/validators"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,42 +20,51 @@ import (
 type UserController struct {
 	userDao interfaces.IUserDAO
 	base.BaseController
+	notificationService interfaces.INotificationService
 }
 
-func NewUserController(userDao interfaces.IUserDAO, config *config.Config) *UserController {
-	this := &UserController{userDao, base.BaseController{Config: config}}
+func NewUserController(userDao interfaces.IUserDAO,
+	notificationService interfaces.INotificationService) *UserController {
+	this := &UserController{
+		userDao:             userDao,
+		BaseController:      base.BaseController{},
+		notificationService: notificationService,
+	}
 	return this
 }
 
-func (userRoute *UserController) RegisterUserRouter(apiRouter fiber.Router) {
+func (u *UserController) RegisterUserRouter(apiRouter fiber.Router) {
 	userRouter := apiRouter.Group("/users")
-	userRouter.Post("/register", userRoute.Register)
+	userRouter.Post("/register", u.Register)
 }
 
 func (u *UserController) Register(ctx *fiber.Ctx) error {
 	var err error
-	var request request.RegisterRequest
-	if err := ctx.BodyParser(&request); err != nil {
+	var registerRequest request.RegisterRequest
+	if err := ctx.BodyParser(&registerRequest); err != nil {
 		log.Println("Error when binding data", err)
 		return u.InvalidFormResponse(ctx, err)
 	}
 
-	if isValid, errors := validators.Validate(&request); !isValid {
+	if isValid, errors := validators.Validate(&registerRequest); !isValid {
 		return u.SendBadRequest(ctx, "Check invalid form before proceed", errors)
 	}
 
-	user := registerRequestToUser(request)
-	if user.Password, err = common.HashPassword(request.Password); err != nil {
+	user := mapRegisterRequestToUser(registerRequest)
+	if user.Password, err = common.HashPassword(registerRequest.Password); err != nil {
 		log.Println("Hash password error ", err)
 		return u.SendServerError(ctx, err)
 	}
-	userName := request.FirstName + request.LastName
+	userName := registerRequest.FirstName + registerRequest.LastName
 	if user.UserName, err = common.GenerateUniqueUserName(u.userDao, userName); err != nil {
 		log.Println("Error when generating username ", err)
 		return u.SendServerError(ctx, err)
 	}
 
-	if err := u.userDao.SaveUser(&user); err != nil {
+	if err := u.userDao.Save(&user); err != nil {
+		if _, e := u.userDao.Find("email=?", user.Email); e == nil {
+			return u.SendBadRequest(ctx, "Email is already exist", err)
+		}
 		return u.SendServerError(ctx, err)
 	}
 	emailVerificationToken, err := common.GenerateToken(common.JSON{
@@ -62,18 +73,24 @@ func (u *UserController) Register(ctx *fiber.Ctx) error {
 	if err != nil {
 		return u.SendServerError(ctx, err)
 	}
-	log.Print("Email verification token ", emailVerificationToken)
-	return u.SendOk(ctx, user, "Create user success")
-}
 
-func registerRequestToUser(request request.RegisterRequest) models.User {
-	return models.User{
-		FirstName:  request.FirstName,
-		LastName:   request.LastName,
-		Email:      request.Email,
-		BirthDay:   request.BirthDay,
-		BirthYear:  request.BirthYear,
-		BirthMonth: request.BirthMonth,
-		Gender:     request.Gender,
+	emailResponse, err := u.notificationService.SendMail(user.Email, "Verification Email",
+		htmltemplates.BuildRegistrationTemplate(user.UserName,
+			fmt.Sprintf(os.Getenv("GATEWAY_BASE_FRONTEND_URL")+"/v1/user/verification/token=%s&email=%s", emailVerificationToken, user.Email),
+		),
+	)
+	if err != nil {
+		return u.SendServerError(ctx, err)
 	}
+	if emailResponse.Success {
+		log.Println("Send email success")
+	} else {
+		log.Println("Send email failed")
+	}
+	return u.SendCreated(ctx, response.RegisterResponse{
+		Success:  true,
+		UserName: user.UserName,
+		UserID:   user.ID,
+		Token:    emailVerificationToken,
+	}, "Create user success")
 }

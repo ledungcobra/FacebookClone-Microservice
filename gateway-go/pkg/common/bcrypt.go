@@ -1,7 +1,8 @@
 package common
 
 import (
-	"ledungcobra/gateway-go/pkg/config"
+	"os"
+	"strconv"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -11,7 +12,11 @@ func init() {
 }
 
 func HashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), config.Cfg.GatewayCost)
+	cost, _ := strconv.Atoi(os.Getenv("GATEWAY_BCRYPT_COST"))
+	if cost == 0 {
+		cost = bcrypt.DefaultCost
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), cost)
 	if err != nil {
 		return "", err
 	}

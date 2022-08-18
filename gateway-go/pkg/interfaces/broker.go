@@ -1,7 +1,6 @@
 package interfaces
 
-type IServer interface {
-	Initialize() error
+type BrokerListener interface {
 	Listen() error
 	Close() error
 }

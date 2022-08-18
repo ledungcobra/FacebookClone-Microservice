@@ -1,15 +1,14 @@
 package dao
 
 import (
-	"ledungcobra/gateway-go/pkg/config"
+	"os"
 
 	"github.com/jackc/pgconn"
 	"gorm.io/gorm"
 )
 
 func NewDBError(message string, err error) error {
-	cfg := config.Cfg
-	if cfg.Env == "production" {
+	if os.Getenv("GATEWAY_ENV") == "production" {
 		return DBError{Message: message}
 	} else {
 		return DBError{message, err}

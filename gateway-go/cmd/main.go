@@ -10,12 +10,17 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.SetOutput(os.Stdout)
-	app := app.NewServer()
-	err := app.Initialize()
+	a := app.NewServer()
+	err := a.Initialize()
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = app.Listen()
+	defer func() {
+		if err := a.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	err = a.Listen()
 	if err != nil {
 		log.Fatal(err)
 	}

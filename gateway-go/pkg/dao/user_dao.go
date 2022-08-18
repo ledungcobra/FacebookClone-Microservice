@@ -30,14 +30,15 @@ func NewUserDao(db *gorm.DB) i.IUserDAO {
 	}
 }
 
-func (u *UserDAO) Find(user *models.User, query any, args any) error {
-	if result := u.db.Where(query, args).First(user); result.Error != nil && result.Error == gorm.ErrRecordNotFound {
-		return ErrRecordNotFound
+func (u *UserDAO) Find(query any, args ...any) (*models.User, error) {
+	var user models.User
+	if result := u.db.Where(query, args).First(&user); result.Error != nil && result.Error == gorm.ErrRecordNotFound {
+		return nil, ErrRecordNotFound
 	}
-	return nil
+	return &user, nil
 }
 
-func (u *UserDAO) SaveUser(user *models.User) error {
+func (u *UserDAO) Save(user *models.User) error {
 	if result := u.db.Save(&user); result.Error != nil {
 		return handleError(result.Error)
 	}

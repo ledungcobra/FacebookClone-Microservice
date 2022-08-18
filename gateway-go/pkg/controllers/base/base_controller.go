@@ -1,13 +1,12 @@
 package base
 
 import (
-	"ledungcobra/gateway-go/pkg/config"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type BaseController struct {
-	Config *config.Config
 }
 
 func (b BaseController) InvalidFormResponse(c *fiber.Ctx, err error) error {
@@ -34,8 +33,7 @@ func (b BaseController) SendBadRequest(ctx *fiber.Ctx, message string, errors an
 }
 
 func (b BaseController) SendServerError(ctx *fiber.Ctx, err error) error {
-	cfg := config.Cfg
-	if cfg.Env == "production" {
+	if os.Getenv("GATEWAY_ENV") == "production" {
 		return ctx.Status(500).JSON(fiber.Map{
 			"message": "Server internal error",
 			"errors":  nil,
@@ -47,5 +45,13 @@ func (b BaseController) SendServerError(ctx *fiber.Ctx, err error) error {
 		"message": "Server internal error",
 		"errors":  []string{err.Error()},
 		"data":    nil,
+	})
+}
+
+func (b BaseController) SendCreated(ctx *fiber.Ctx, data any, message string) error {
+	return ctx.Status(201).JSON(fiber.Map{
+		"message": message,
+		"errors":  nil,
+		"data":    data,
 	})
 }

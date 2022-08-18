@@ -18,10 +18,8 @@ type Config struct {
 	JWTSecret   string
 }
 
-var Cfg *Config
-
-func Init() {
-	Cfg = &Config{}
+func New() *Config {
+	Cfg := &Config{}
 	log.Println("Loading env from .env file")
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -31,6 +29,7 @@ func Init() {
 	Cfg.loadMongoDbURL()
 	Cfg.loadPostgresURL()
 	Cfg.GatewayCost = Cfg.mustLoadEnvInt("GATEWAY_BCRYPT_COST")
+	return Cfg
 }
 
 func (c *Config) loadPostgresURL() {

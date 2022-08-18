@@ -1,9 +1,9 @@
 package app
 
 import (
-	"log"
-
 	"ledungcobra/gateway-go/pkg/interfaces"
+	"ledungcobra/gateway-go/pkg/service"
+	"log"
 
 	"ledungcobra/gateway-go/pkg/config"
 	"ledungcobra/gateway-go/pkg/database"
@@ -13,21 +13,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type App struct {
+	server *fiber.App
+	db     *database.SQLConnector
+	config *config.Config
+}
+
 func NewServer() interfaces.IServer {
 	return &App{}
 }
 
-type App struct {
-	server *fiber.App
-	db     *database.SQLDBManager
-	config *config.Config
-}
-
-// Initialize
 func (a *App) Initialize() error {
 	log.Println("Initializing server...")
-	config.Init()
-	a.config = config.Cfg
+	a.config = config.New()
 	a.setupDatabase(a.config)
 	a.setupWebServer()
 	return nil
@@ -35,7 +33,7 @@ func (a *App) Initialize() error {
 
 func (a *App) setupDatabase(config *config.Config) {
 	log.Println("Setting up database")
-	a.db = database.NewSQLDatabase(config.SqlDsn)
+	a.db = database.NewSQLConnector(config.SqlDsn)
 	a.db.Connect()
 	a.db.MigrateModels()
 	log.Println("Setting up database success")
@@ -46,7 +44,7 @@ func (a *App) setupWebServer() {
 	a.server = fiber.New(fiber.Config{
 		AppName: "Localhost",
 	})
-	routes.SetUpRoutes(a.db, a.server, a.config)
+	routes.SetUpRoutes(a.db, a.server, service.NewNotificationService())
 	middlewares.SetUpMiddlewares(a.server)
 }
 
@@ -55,6 +53,7 @@ func (a *App) Listen() error {
 	return a.server.Listen(":" + a.config.ServerPort)
 }
 
-func (*App) Stop() error {
+func (a *App) Close() error {
+	log.Println("Closing server...")
 	return nil
 }
