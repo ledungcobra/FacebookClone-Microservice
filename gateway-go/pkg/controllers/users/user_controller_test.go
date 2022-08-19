@@ -3,7 +3,9 @@ package users
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/go-cmp/cmp"
 	"gorm.io/gorm"
 	"io"
 	"io/ioutil"
@@ -13,6 +15,7 @@ import (
 	"ledungcobra/gateway-go/pkg/models"
 	"ledungcobra/gateway-go/pkg/service"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -25,31 +28,40 @@ type UserDaoStub struct {
 	CurrentID uint
 }
 
+const (
+	TestPassword = "test123"
+	TestEmail    = "test@gmail.com"
+)
+
 func NewUserDaoStub() *UserDaoStub {
+	hashedPassword, _ := common.HashPassword(TestPassword)
 	u := &UserDaoStub{
 		users: map[uint]*models.User{
-			0: {
-				Email:  "test@gmail.com",
-				Detail: models.Detail{},
-				Post:   nil,
+			1: {
+				Email:    TestEmail,
+				Password: hashedPassword,
+				Detail:   models.Detail{},
+				Post:     nil,
 				Model: gorm.Model{
 					ID: 0,
 				},
+				Verified: true,
 			},
 		},
 	}
-	u.CurrentID = 1
+	u.CurrentID = 2
 	return u
 }
 
 func (u *UserDaoStub) Save(user *models.User) error {
-	for _, v := range u.users {
-		if v.UserName == user.UserName {
-			return errors.New("user name is already exist")
-		} else if v.Email == user.Email {
-			return errors.New("email is already exist")
+	if user.ID == 0 {
+		for _, v := range u.users {
+			if v.Email == user.Email {
+				return errors.New("email is already exist")
+			}
 		}
 	}
+
 	user.ID = u.CurrentID
 	u.users[user.ID] = user
 	u.CurrentID++
@@ -84,27 +96,25 @@ type NotificationServiceStub struct {
 	interfaces.INotificationService
 }
 
+type TestCase struct {
+	name          string
+	url           string
+	method        string
+	body          string
+	response      common.JSON
+	statusCode    int
+	expectedError bool
+}
+
 func (n *NotificationServiceStub) SendMail(to, subject, body string) (*service.SendMailResponse, error) {
 	return &service.SendMailResponse{
 		Success: true,
 	}, nil
 }
 
-func TestUserController(t *testing.T) {
-	app := fiber.New()
-	userController := NewUserController(NewUserDaoStub(), &NotificationServiceStub{})
-	v1 := app.Group("/api").Group("/v1")
-	userController.RegisterUserRouter(v1)
-	tests := []struct {
-		name     string
-		url      string
-		method   string
-		body     string
-		response common.JSON
-
-		statusCode    int
-		expectedError bool
-	}{
+func TestUserController_Register(t *testing.T) {
+	userController := getController()
+	tests := []TestCase{
 		{
 			name:   "TestRegister should success",
 			url:    "/api/v1/users/register",
@@ -122,8 +132,14 @@ func TestUserController(t *testing.T) {
 
 			statusCode: 201,
 			response: common.JSON{
+				"data": common.JSON{
+					"success":    true,
+					"first_name": "dung",
+					"last_name":  "le",
+					"verified":   false,
+				},
 				"errors":  nil,
-				"message": "Create user success",
+				"message": "Register user success please active your email to start",
 			},
 		},
 		{
@@ -142,28 +158,106 @@ func TestUserController(t *testing.T) {
 						}`,
 			statusCode: 400,
 		},
+		{
+			name:   "TestRegister should fail because of validation form",
+			url:    "/api/v1/users/register",
+			method: "POST",
+			body: `{
+							"first_name": "dung",
+							"last_name": "le",
+							"email": "@gmail.com",
+							"password":"12345678",
+							"birth_year": 1900,
+							"birth_month": 1,
+							"birth_day": 1,
+							"gender":"male"
+						}`,
+			statusCode: 400,
+		},
+		{
+			name:       "TestRegister should fail because of invalid form",
+			url:        "/api/v1/users/register",
+			method:     "POST",
+			body:       ``,
+			statusCode: 400,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, tt.url, buildBody(tt.body))
-			req.Header.Set("Content-Type", "application/json")
-			result, err := app.Test(req, int(time.Second.Milliseconds()))
-			if err != nil {
-				t.Errorf("TestUserController() error = %v", err)
+			var result *http.Response
+			var done bool
+			if result, done = UTestStatus(tt.name, t, tt, userController); done {
 				return
 			}
-			if result.StatusCode != tt.statusCode {
-				t.Errorf("TestRegister() statusCode = %v, want %v", result.StatusCode, tt.statusCode)
+			if tt.response != nil {
+				resp := bodyToJSON(result.Body)
+				if resp == nil {
+					return
+				}
+				delete(resp["data"].(common.JSON), "token")
+				delete(resp["data"].(common.JSON), "id")
+				delete(resp["data"].(common.JSON), "user_name")
+				delete(resp["data"].(common.JSON), "picture")
+				if diff := cmp.Diff(resp, tt.response, cmp.Comparer(compareResponse)); diff != "" {
+					t.Errorf("TestRegister() diff = %v", diff)
+				}
 			}
-			//if diff := cmp.Diff(bodyToJSON(result.Body), tt.response); diff != "" {
-			//	t.Errorf("TestRegister() response = %v, want %v", result.Body, tt.response)
-			//}
 		})
 	}
 }
 
+func UTestStatus(name string, t *testing.T, tt TestCase, userController *fiber.App) (*http.Response, bool) {
+	req := httptest.NewRequest(tt.method, tt.url, buildBody(tt.body))
+	req.Header.Set("Content-Type", "application/json")
+	result, err := userController.Test(req, int(time.Second.Milliseconds()))
+	if err != nil {
+		t.Errorf(name+") error = %v", err)
+		return nil, true
+	}
+	if result.StatusCode != tt.statusCode {
+		t.Errorf(name+" statusCode = %v, want %v", result.StatusCode, tt.statusCode)
+	}
+	return result, false
+}
+
+func getController() *fiber.App {
+	app := fiber.New()
+	userController := NewUserController(NewUserDaoStub(), &NotificationServiceStub{})
+	v1 := app.Group("/api").Group("/v1")
+	userController.RegisterUserRouter(v1)
+	return app
+}
+
+func compareResponse(actual, expected common.JSON) bool {
+	if expected == nil {
+		return true
+	}
+	if len(actual) != len(expected) {
+		return false
+	}
+	for k, v := range expected {
+		if k == "id" || k == "token" || k == "user_name" {
+			continue
+		}
+		object, isObject := expected[k].(common.JSON)
+		if isObject {
+			if !compareResponse(actual[k].(common.JSON), object) {
+				return false
+			}
+		} else {
+			if actual[k] != v {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func bodyToJSON(body io.ReadCloser) common.JSON {
+	if body == nil {
+		return nil
+	}
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
 		log.Println("Error:", err)
@@ -180,4 +274,51 @@ func bodyToJSON(body io.ReadCloser) common.JSON {
 
 func buildBody(body string) io.Reader {
 	return strings.NewReader(body)
+}
+
+func TestUserController_Login(t *testing.T) {
+	app := getController()
+	tests := []TestCase{
+		{
+			name:   "TestLogin should success",
+			url:    "/api/v1/users/login",
+			method: "POST",
+			body: fmt.Sprintf(`{
+							"email": "%s",
+							"password":"%s"
+					}`, TestEmail, TestPassword),
+			statusCode: 200,
+		},
+		{
+			name:   "TestLogin should fail when provide wrong password",
+			url:    "/api/v1/users/login",
+			method: "POST",
+			body: fmt.Sprintf(`{
+							"email": "%s",
+							"password":"%s"
+					}`, TestEmail, "12345678aa"),
+			statusCode: 400,
+		},
+		{
+			name:   "TestLogin should fail when provide wrong email or password",
+			url:    "/api/v1/users/login",
+			method: "POST",
+			body: fmt.Sprintf(`{
+							"email": "%s",
+							"password":"%s"
+					}`, "abd@gmail.com", "12345678aa"),
+			statusCode: 404,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, done := UTestStatus(tt.name, t, tt, app)
+			if done {
+				return
+			}
+			if resp != nil {
+				t.Log(bodyToJSON(resp.Body))
+			}
+		})
+	}
 }

@@ -23,6 +23,6 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func RecoverPassword(hashedPassword, plainPassword string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword)) != nil
+func ComparePassword(hashedPassword, plainPassword string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword)) == nil
 }

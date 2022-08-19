@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	ErrRecordNotFound = DBError{Message: "Record not found"}
+	ErrRecordNotFound = DBError{Message: "Record not found", err: gorm.ErrRecordNotFound}
 )
 
 type DBError struct {

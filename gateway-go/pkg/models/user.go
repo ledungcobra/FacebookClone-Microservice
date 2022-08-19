@@ -8,7 +8,7 @@ type User struct {
 	UserName   string `gorm:"column:user_name;type:varchar(255);not null;unique"`
 	Email      string `gorm:"column:email;type:varchar(255);not null;unique"`
 	Password   string `gorm:"column:password;type:varchar(255);not null"`
-	Picture    string `gorm:"column:picture;type:varchar(255);not null;default:''"`
+	Picture    string `gorm:"column:picture;type:varchar(255);not null;default:'https://res.cloudinary.com/dmhcnhtng/image/upload/v1643044376/avatars/default_pic_jeaybr.png'"`
 	Cover      string `gorm:"column:cover;type:varchar(255);not null;default:''"`
 	BirthYear  int    `gorm:"column:birth_year;type:int;not null;default:0"`
 	BirthDay   int    `gorm:"column:birth_day;type:int;not null;default:0"`
@@ -23,6 +23,7 @@ type User struct {
 	Detail    Detail `gorm:"embedded"`
 	Post      []Post `gorm:"foreignKey:AuthorID;"`
 	gorm.Model
+	VerificationToken string `gorm:"column:verification_token;type:varchar(255);not null"`
 }
 
 func (User) TableName() string {
@@ -34,7 +35,7 @@ type Detail struct {
 	OtherName    string `gorm:"column:other_name;type:varchar(255);not null;default:''"`
 	Job          string `gorm:"column:job;type:varchar(255);not null;default:''"`
 	Workplace    string `gorm:"column:workplace;type:varchar(255);not null;default:''"`
-	Highschool   string `gorm:"column:highschool;type:varchar(255);not null;default:''"`
+	HighSchool   string `gorm:"column:high_school;type:varchar(255);not null;default:''"`
 	College      string `gorm:"column:college;type:varchar(255);not null;default:''"`
 	Currentcity  string `gorm:"column:current_city;type:varchar(255);not null;default:''"`
 	Hometown     string `gorm:"column:hometown;type:varchar(255);not null;default:''"`

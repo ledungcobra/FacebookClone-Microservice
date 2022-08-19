@@ -680,8 +680,8 @@
   background-repeat: no-repeat;
   display: inline-block;
   -webkit-filter: invert(39%) sepia(57%) saturate(200%) saturate(200%)
-    saturate(200%) saturate(200%) saturate(200%) saturate(147.75%)
-    hue-rotate(202deg) brightness(97%) contrast(96%);
+  saturate(200%) saturate(200%) saturate(200%) saturate(147.75%)
+  hue-rotate(202deg) brightness(97%) contrast(96%);
 }
 .equalize_icon {
   background-image: url(../../../public/icons/icons26.png);
@@ -737,4 +737,12 @@
   width: 16px;
   height: 16px;
   background-position: 0 -60px;
+}
+.error_icon {
+  background-image: url(../../../public/icons/icons10.png);
+  background-size: auto;
+  background-repeat: no-repeat;
+  display: inline-block;
+  height: 21px;
+  width: 21px;
 }

@@ -1,8 +1,12 @@
 package response
 
 type RegisterResponse struct {
-	Success  bool   `json:"success"`
-	UserName string `json:"user_name"`
-	UserID   uint   `json:"user_id"`
-	Token    string `json:"token"`
+	Success   bool   `json:"success"`
+	UserName  string `json:"user_name"`
+	ID        uint   `json:"id"`
+	Token     string `json:"token"`
+	Picture   string `json:"picture"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Verified  bool   `json:"verified"`
 }

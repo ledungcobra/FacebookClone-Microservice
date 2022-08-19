@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"sync"
 	"testing"
 	"time"
@@ -23,7 +24,7 @@ func TestJWTTokenValid(t *testing.T) {
 	tests := []input{
 		{
 			name: "test generate token",
-			args: args{username: "ledungcobra", expired: time.Second * 5},
+			args: args{username: "ledungcobra", expired: time.Second * 2},
 		},
 	}
 	var wg sync.WaitGroup
@@ -38,8 +39,8 @@ func TestJWTTokenValid(t *testing.T) {
 				return
 			}
 
-			time.Sleep(tt.args.expired - 2*time.Second)
-			token, err := VerifyToken(generatedToken)
+			time.Sleep(tt.args.expired - 1*time.Second)
+			token, err := ExtractToken(generatedToken)
 			if err != nil {
 				t.Error("verify token error")
 				return
@@ -47,9 +48,11 @@ func TestJWTTokenValid(t *testing.T) {
 			if !token.Valid {
 				t.Error("token is not valid")
 			}
-			userName := token.Claims.(jwt.MapClaims)["username"].(string)
-			if tt.args.username != userName {
-				t.Errorf("%s: want username %s, got %s", tt.name, tt.args.username, userName)
+			data := JSON{}
+			_ = json.Unmarshal([]byte(token.Claims.(*jwt.RegisteredClaims).Subject), &data)
+			username := data["username"].(string)
+			if tt.args.username != username {
+				t.Errorf("%s: want username %s, got %s", tt.name, tt.args.username, username)
 				return
 			}
 		}(tt)
@@ -75,8 +78,8 @@ func TestJWTTokenInvalid(t *testing.T) {
 				t.Error(err)
 			}
 
-			time.Sleep(tt.args.expired + 2*time.Second)
-			token, err := VerifyToken(generatedToken)
+			time.Sleep(tt.args.expired + 500*time.Millisecond)
+			token, err := ExtractToken(generatedToken)
 			if err == nil {
 				t.Error("Should return error in case of token invalid")
 			}
