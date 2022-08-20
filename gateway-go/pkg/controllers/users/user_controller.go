@@ -118,9 +118,7 @@ func (u *UserController) Login(ctx *fiber.Ctx) error {
 		}
 		return u.SendServerError(ctx, err)
 	}
-	if !user.Verified {
-		return u.SendBadRequest(ctx, "Please active your account")
-	}
+
 	if !common.ComparePassword(user.Password, loginRequest.Password) {
 		return u.SendBadRequest(ctx, "Username or password incorrect")
 	}

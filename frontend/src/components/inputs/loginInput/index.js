@@ -6,7 +6,6 @@ import {useMediaQuery} from "react-responsive";
 export default function Index({placeholder, bottom, ...props}) {
     const [field, meta] = useField(props);
     const isDesktop = useMediaQuery({query: '(min-width: 850px)'})
-    console.log(isDesktop)
     return (
         <div className="input_wrap">
             {meta.touched && meta.error && !bottom && (

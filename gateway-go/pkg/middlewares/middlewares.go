@@ -7,12 +7,15 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
-func SetUpMiddlewares(app *fiber.App) {
+func SetBeforeMiddlewares(app *fiber.App) {
 	app.Use(logger.New())
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000",
-		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTION",
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Methods",
 	}))
+}
+
+func SetAfterMiddlewares(app *fiber.App) {
 	app.Use(notFoundMiddleware)
 }

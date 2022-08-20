@@ -45,7 +45,7 @@ func NewUserDaoStub() *UserDaoStub {
 				Model: gorm.Model{
 					ID: 0,
 				},
-				Verified: true,
+				Verified: false,
 			},
 		},
 	}

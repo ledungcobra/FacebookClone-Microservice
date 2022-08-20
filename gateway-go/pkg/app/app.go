@@ -44,8 +44,9 @@ func (a *App) setupWebServer() {
 	a.server = fiber.New(fiber.Config{
 		AppName: "Localhost",
 	})
+	middlewares.SetBeforeMiddlewares(a.server)
 	routes.SetUpRoutes(a.db, a.server, service.NewNotificationService())
-	middlewares.SetUpMiddlewares(a.server)
+	middlewares.SetAfterMiddlewares(a.server)
 }
 
 func (a *App) Listen() error {

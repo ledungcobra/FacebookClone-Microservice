@@ -15,7 +15,7 @@ type IValidator interface {
 const (
 	EmailErrMessage   = "Email is not valid"
 	RegexErrMessage   = "Input is not valid"
-	ValidtorTag       = "validator"
+	ValidatorTag      = "validator"
 	TagPropSeperator  = ";"
 	TagFieldSeperator = ":"
 	Regex             = "regex"
@@ -47,7 +47,7 @@ func Validate(object any) (bool, []ValidationResult) {
 	var validationResults []ValidationResult
 	for fieldIndex := 0; fieldIndex < numFields; fieldIndex++ {
 		curField, curValue := extractFieldAndValue(objType, objValue, fieldIndex)
-		tagValidators := curField.Tag.Get(ValidtorTag)
+		tagValidators := curField.Tag.Get(ValidatorTag)
 		tagFieldItems := strings.Split(tagValidators, TagPropSeperator)
 		validators := extractValidators(tagFieldItems, curValue)
 		validationResult := validateCurField(validators, curField)
@@ -108,13 +108,13 @@ func mapToCorrespondingValidator(tagFieldName string, tagFieldValue string, curV
 	case NotNil:
 		return NewNotNilValidator(curValue)
 	case In:
-		return NewInValidator(curValue.String(), toList(tagFieldValue))
+		return NewInValidator(curValue.String(), toListTag(tagFieldValue))
 	default:
 		return defaultValidator
 	}
 }
 
-func toList(str string) []string {
+func toListTag(str string) []string {
 	return strings.Split(str, ",")
 }
 func extractMinMax(tagFieldValue string) (int, int) {

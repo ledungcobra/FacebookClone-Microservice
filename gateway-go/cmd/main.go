@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.SetOutput(os.Stdout)
 	a := app.NewServer()
 	err := a.Initialize()

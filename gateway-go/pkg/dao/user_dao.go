@@ -12,7 +12,7 @@ var (
 )
 
 type DBError struct {
-	Message string
+	Message string `json:"message"`
 	err     error
 }
 

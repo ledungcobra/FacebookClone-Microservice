@@ -1,9 +1,12 @@
 import React from 'react';
+import Header from "../../components/header";
 
-function Index(props) {
+function Home(props) {
     return (
-        <div>Index page</div>
+        <div>
+            <Header/>
+        </div>
     );
 }
 
-export default Index;
+export default Home;
