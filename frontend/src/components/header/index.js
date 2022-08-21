@@ -19,6 +19,7 @@ import SearchMenu from "./SearchMenu";
 import AllMenu from "./AllMenu";
 import UserMenu from "./UserMenu/UserMenu";
 import {useClickOutside} from "../../hooks/useClickOutside";
+import classNames from "classnames";
 
 const color = '#65676b';
 
@@ -75,7 +76,9 @@ function Header(props) {
                     <img src={user?.picture} alt={user?.user_name}/>
                     <span>{user?.first_name}</span>
                 </Link>
-                <div className="circle_icon hover1" onClick={() => setShowAll(prev => !prev)}>
+                <div className={classNames("circle_icon hover1", {
+                    'active_header': showAll
+                })} onClick={() => setShowAll(prev => !prev)}>
                     <Menu/>
                     {showAll && <AllMenu setShowAll={setShowAll}/>}
                 </div>
@@ -86,7 +89,9 @@ function Header(props) {
                     <Notifications/>
                     <div className="right_notification">7</div>
                 </div>
-                <div className="circle_icon hover1" ref={userMenuRef} onClick={() => setShowUserMenu(true)}>
+                <div className={classNames("circle_icon hover1", {
+                    'active_header': showUserMenu
+                })} ref={userMenuRef} onClick={() => setShowUserMenu(true)}>
                     <ArrowDown/>
                     {showUserMenu && <UserMenu user={user}/>}
                 </div>

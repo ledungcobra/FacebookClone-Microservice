@@ -103,7 +103,7 @@ function AllMenu({setShowAll}) {
                     <div className="all_right_header">Create</div>
                     {
                         create.map((item, index) => (
-                            <div className="all_right_item hover1">
+                            <div key={index} className="all_right_item hover1">
                                 <div className="all_right_circle">
                                     <i className={item.icon}></i>
                                 </div>

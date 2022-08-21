@@ -6,6 +6,8 @@ import {Provider} from "react-redux";
 import {createStore} from "redux";
 import {composeWithDevTools} from "redux-devtools-extension";
 import rootReducer from "./reducers";
+import LoggedInRoutes from "./routes/LoggedInRoutes";
+import NotLoggedInRoutes from "./routes/NotLoggedInRoutes";
 
 const store = createStore(rootReducer, composeWithDevTools());
 
@@ -14,9 +16,13 @@ function App() {
         <Provider store={store}>
             <BrowserRouter>
                 <Routes>
-                    <Route path="/login" element={<Login/>} exact/>
-                    <Route path="/profile" element={<Profile/>} exact/>
-                    <Route path="/" element={<Home/>} exact/>
+                    <Route element={<LoggedInRoutes/>}>
+                        <Route path="/" element={<Home/>} exact/>
+                        <Route path="/profile" element={<Profile/>} exact/>
+                    </Route>
+                    <Route element={<NotLoggedInRoutes/>}>
+                        <Route path="/login" element={<Login/>} exact/>
+                    </Route>
                 </Routes>
             </BrowserRouter>
         </Provider>
