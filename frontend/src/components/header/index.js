@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {Link} from "react-router-dom";
 import {
     ArrowDown,
@@ -16,13 +16,22 @@ import {
 import './style.css';
 import {useSelector} from "react-redux";
 import SearchMenu from "./SearchMenu";
+import AllMenu from "./AllMenu";
+import UserMenu from "./UserMenu/UserMenu";
+import {useClickOutside} from "../../hooks/useClickOutside";
 
 const color = '#65676b';
 
 function Header(props) {
     const user = useSelector(state => state.user);
     const [showSearchMenu, setShowSearchMenu] = useState(false);
+    const [showAll, setShowAll] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const userMenuRef = useRef(null)
 
+    useClickOutside(userMenuRef, () => {
+        setShowUserMenu(false);
+    })
     return (
         <header>
             <div className="header_left">
@@ -33,7 +42,9 @@ function Header(props) {
                 </Link>
                 <div className="search search1" onClick={() => setShowSearchMenu(true)}>
                     <Search color={color}/>
-                    <input type="text" placeholder='Search Facebook' className='hide_input'/>
+                    <input type="text"
+                           placeholder='Search Facebook'
+                           className='hide_input'/>
                 </div>
             </div>
             {
@@ -64,8 +75,9 @@ function Header(props) {
                     <img src={user?.picture} alt={user?.user_name}/>
                     <span>{user?.first_name}</span>
                 </Link>
-                <div className="circle_icon hover1">
+                <div className="circle_icon hover1" onClick={() => setShowAll(prev => !prev)}>
                     <Menu/>
+                    {showAll && <AllMenu setShowAll={setShowAll}/>}
                 </div>
                 <div className="circle_icon hover1">
                     <Messenger/>
@@ -74,8 +86,9 @@ function Header(props) {
                     <Notifications/>
                     <div className="right_notification">7</div>
                 </div>
-                <div className="circle_icon hover1">
+                <div className="circle_icon hover1" ref={userMenuRef} onClick={() => setShowUserMenu(true)}>
                     <ArrowDown/>
+                    {showUserMenu && <UserMenu user={user}/>}
                 </div>
             </div>
         </header>
