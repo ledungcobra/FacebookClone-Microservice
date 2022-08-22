@@ -14,7 +14,6 @@ import {
     Watch
 } from "../../svg";
 import './style.css';
-import {useSelector} from "react-redux";
 import SearchMenu from "./SearchMenu";
 import AllMenu from "./AllMenu";
 import UserMenu from "./UserMenu/UserMenu";
@@ -23,8 +22,7 @@ import classNames from "classnames";
 
 const color = '#65676b';
 
-function Header(props) {
-    const user = useSelector(state => state.user);
+function Header({user}) {
     const [showSearchMenu, setShowSearchMenu] = useState(false);
     const [showAll, setShowAll] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
