@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.27.1
 // 	protoc        v3.21.4
-// source: mail-service.proto
+// source: mail-app_service.proto
 
-package service
+package app_service
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -173,12 +173,12 @@ func file_mail_service_proto_rawDescGZIP() []byte {
 
 var file_mail_service_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_mail_service_proto_goTypes = []interface{}{
-	(*Mail)(nil),             // 0: service.Mail
-	(*SendMailResponse)(nil), // 1: service.SendMailResponse
+	(*Mail)(nil),             // 0: app_service.Mail
+	(*SendMailResponse)(nil), // 1: app_service.SendMailResponse
 }
 var file_mail_service_proto_depIdxs = []int32{
-	0, // 0: service.MailService.SendMail:input_type -> service.Mail
-	1, // 1: service.MailService.SendMail:output_type -> service.SendMailResponse
+	0, // 0: app_service.MailService.SendMail:input_type -> app_service.Mail
+	1, // 1: app_service.MailService.SendMail:output_type -> app_service.SendMailResponse
 	1, // [1:2] is the sub-list for method output_type
 	0, // [0:1] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

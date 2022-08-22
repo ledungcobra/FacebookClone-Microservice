@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.4
-// source: mail-service.proto
+// source: mail-app_service.proto
 
-package service
+package app_service
 
 import (
 	context "context"
@@ -18,7 +18,7 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// MailServiceClient is the client API for MailService service.
+// MailServiceClient is the client API for MailService app_service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MailServiceClient interface {
@@ -35,14 +35,14 @@ func NewMailServiceClient(cc grpc.ClientConnInterface) MailServiceClient {
 
 func (c *mailServiceClient) SendMail(ctx context.Context, in *Mail, opts ...grpc.CallOption) (*SendMailResponse, error) {
 	out := new(SendMailResponse)
-	err := c.cc.Invoke(ctx, "/service.MailService/SendMail", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/app_service.MailService/SendMail", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// MailServiceServer is the server API for MailService service.
+// MailServiceServer is the server API for MailService app_service.
 // All implementations must embed UnimplementedMailServiceServer
 // for forward compatibility
 type MailServiceServer interface {
@@ -59,7 +59,7 @@ func (UnimplementedMailServiceServer) SendMail(context.Context, *Mail) (*SendMai
 }
 func (UnimplementedMailServiceServer) mustEmbedUnimplementedMailServiceServer() {}
 
-// UnsafeMailServiceServer may be embedded to opt out of forward compatibility for this service.
+// UnsafeMailServiceServer may be embedded to opt out of forward compatibility for this app_service.
 // Use of this interface is not recommended, as added methods to MailServiceServer will
 // result in compilation errors.
 type UnsafeMailServiceServer interface {
@@ -80,7 +80,7 @@ func _MailService_SendMail_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/service.MailService/SendMail",
+		FullMethod: "/app_service.MailService/SendMail",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MailServiceServer).SendMail(ctx, req.(*Mail))
@@ -88,11 +88,11 @@ func _MailService_SendMail_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-// MailService_ServiceDesc is the grpc.ServiceDesc for MailService service.
+// MailService_ServiceDesc is the grpc.ServiceDesc for MailService app_service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var MailService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "service.MailService",
+	ServiceName: "app_service.MailService",
 	HandlerType: (*MailServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -101,5 +101,5 @@ var MailService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "mail-service.proto",
+	Metadata: "mail-app_service.proto",
 }

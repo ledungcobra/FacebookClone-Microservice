@@ -2,7 +2,7 @@ syntax = 'proto3';
 
 package service;
 
-option go_package = "/service";
+option go_package = "/app_service";
 
 service MailService {
   rpc SendMail(Mail) returns (SendMailResponse);

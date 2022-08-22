@@ -38,7 +38,7 @@ func (s *SQLConnector) GetDatabase() *gorm.DB {
 
 func (s *SQLConnector) MigrateModels() {
 	log.Println("Migrating to database")
-	if err := s.db.Migrator().AutoMigrate(&models.User{}, &models.Post{}); err != nil {
+	if err := s.db.Migrator().AutoMigrate(&models.User{}, &models.Post{}, &models.Code{}); err != nil {
 		log.Panic("Cannot migrate models because of " + err.Error())
 	}
 }

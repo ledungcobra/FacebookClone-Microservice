@@ -22,6 +22,7 @@ type User struct {
 	Friends   []User `gorm:"many2many:user_friends;"`
 	Detail    Detail `gorm:"embedded"`
 	Post      []Post `gorm:"foreignKey:AuthorID;"`
+	Code      Code   `gorm:"foreignKey:UserID"`
 	gorm.Model
 	VerificationToken string `gorm:"column:verification_token;type:varchar(255);not null"`
 }

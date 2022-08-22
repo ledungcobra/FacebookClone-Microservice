@@ -9,11 +9,11 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"io/ioutil"
+	"ledungcobra/gateway-go/pkg/app_service"
 	"ledungcobra/gateway-go/pkg/common"
 	"ledungcobra/gateway-go/pkg/dao"
 	"ledungcobra/gateway-go/pkg/interfaces"
 	"ledungcobra/gateway-go/pkg/models"
-	"ledungcobra/gateway-go/pkg/service"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -106,8 +106,8 @@ type TestCase struct {
 	expectedError bool
 }
 
-func (n *NotificationServiceStub) SendMail(to, subject, body string) (*service.SendMailResponse, error) {
-	return &service.SendMailResponse{
+func (n *NotificationServiceStub) SendMail(to, subject, body string) (*app_service.SendMailResponse, error) {
+	return &app_service.SendMailResponse{
 		Success: true,
 	}, nil
 }
@@ -223,7 +223,7 @@ func UTestStatus(name string, t *testing.T, tt TestCase, userController *fiber.A
 
 func getController() *fiber.App {
 	app := fiber.New()
-	userController := NewUserController(NewUserDaoStub(), &NotificationServiceStub{})
+	userController := NewUserController(NewUserDaoStub(), &NotificationServiceStub{}, nil)
 	v1 := app.Group("/api").Group("/v1")
 	userController.RegisterUserRouter(v1)
 	return app

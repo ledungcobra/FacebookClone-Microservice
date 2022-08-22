@@ -1,8 +1,8 @@
 package app
 
 import (
+	"ledungcobra/gateway-go/pkg/app_service"
 	"ledungcobra/gateway-go/pkg/interfaces"
-	"ledungcobra/gateway-go/pkg/service"
 	"log"
 
 	"ledungcobra/gateway-go/pkg/config"
@@ -45,7 +45,7 @@ func (a *App) setupWebServer() {
 		AppName: "Localhost",
 	})
 	middlewares.SetBeforeMiddlewares(a.server)
-	routes.SetUpRoutes(a.db, a.server, service.NewNotificationService())
+	routes.SetUpRoutes(a.db, a.server, app_service.NewNotificationService())
 	middlewares.SetAfterMiddlewares(a.server)
 }
 

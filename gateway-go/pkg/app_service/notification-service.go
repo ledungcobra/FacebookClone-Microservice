@@ -1,4 +1,4 @@
-package service
+package app_service
 
 import (
 	"context"

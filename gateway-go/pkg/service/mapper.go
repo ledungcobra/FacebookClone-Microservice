@@ -1,4 +1,4 @@
-package users
+package service
 
 import (
 	"ledungcobra/gateway-go/pkg/controllers/users/request"

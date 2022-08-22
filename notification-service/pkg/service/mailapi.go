@@ -85,7 +85,7 @@ func SendMail(from string, to string, subject string, body string, templateType 
 	client := getClient(config)
 	srv, err := gmail.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		return fmt.Errorf("unable to retrieve gmail service %w", err)
+		return fmt.Errorf("unable to retrieve gmail app_service %w", err)
 	}
 	user := "me"
 	// send email to the user

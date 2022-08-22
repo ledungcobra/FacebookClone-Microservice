@@ -9,6 +9,7 @@ import LoggedInRoutes from "./routes/LoggedInRoutes";
 import Activate from "./pages/home/activate";
 import NotLoggedInRoutes from "./routes/NotLoggedInRoutes";
 import Login from "./pages/login";
+import Reset from "./pages/reset";
 
 const store = createStore(rootReducer, composeWithDevTools());
 
@@ -25,6 +26,7 @@ function Router() {
                     <Route element={<NotLoggedInRoutes/>}>
                         <Route path="/login" element={<Login/>} exact/>
                     </Route>
+                    <Route path='/reset' element={<Reset />}/>
                 </Routes>
             </BrowserRouter>
         </Provider>

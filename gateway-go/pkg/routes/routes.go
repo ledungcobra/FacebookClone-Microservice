@@ -12,6 +12,6 @@ func SetUpRoutes(db *database.SQLConnector, app *fiber.App, notificationService 
 	api := app.Group("/api")
 	v1 := api.Group("/v1")
 	userDao := dao.NewUserDao(db.GetDatabase())
-	userController := users.NewUserController(userDao, notificationService)
+	userController := users.NewUserController(userDao, notificationService, db.GetDatabase())
 	userController.RegisterUserRouter(v1)
 }

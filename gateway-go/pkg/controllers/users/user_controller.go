@@ -1,7 +1,7 @@
 package users
 
 import (
-	"fmt"
+	"gorm.io/gorm"
 	"ledungcobra/gateway-go/pkg/controllers/users/response"
 	"ledungcobra/gateway-go/pkg/dao"
 	"ledungcobra/gateway-go/pkg/htmltemplates"
@@ -9,7 +9,6 @@ import (
 	"ledungcobra/gateway-go/pkg/models"
 	"ledungcobra/gateway-go/pkg/service"
 	"log"
-	"os"
 	"time"
 
 	"ledungcobra/gateway-go/pkg/common"
@@ -25,14 +24,19 @@ type UserController struct {
 	userDao interfaces.IUserDAO
 	base.BaseController
 	notificationService interfaces.INotificationService
+	codeDao             interfaces.ICommonDao[models.Code]
+	service             *service.UserService
 }
 
 func NewUserController(userDao interfaces.IUserDAO,
-	notificationService interfaces.INotificationService) *UserController {
+	notificationService interfaces.INotificationService,
+	db *gorm.DB) *UserController {
 	this := &UserController{
 		userDao:             userDao,
 		BaseController:      base.BaseController{},
 		notificationService: notificationService,
+		codeDao:             dao.NewCommonDao[models.Code](db),
+		service:             service.NewUserService(userDao),
 	}
 	return this
 }
@@ -42,9 +46,9 @@ func (u *UserController) RegisterUserRouter(apiRouter fiber.Router) {
 	userRouter.Post("/register", u.Register)
 	userRouter.Post("/login", u.Login)
 	userRouter.Post("/activate", u.ActiveAccount)
-	userRouter.Get("/auth", middlewares.Protected, u.AuthTest)
 	userRouter.Post("/sendVerification", middlewares.Protected, u.ResendVerification)
-
+	userRouter.Get("/", u.FindAccount)
+	userRouter.Post("/resetPassword", u.SendResetPassword)
 }
 
 func (u *UserController) Register(ctx *fiber.Ctx) error {
@@ -59,25 +63,14 @@ func (u *UserController) Register(ctx *fiber.Ctx) error {
 		return u.SendBadRequestWithError(ctx, "Check invalid form before proceed", errors)
 	}
 
-	user := mapRegisterRequestToUser(registerRequest)
-	if user.Password, err = common.HashPassword(registerRequest.Password); err != nil {
-		log.Println("Hash password error ", err)
+	user, err := u.service.Register(registerRequest)
+	switch err {
+	case service.ErrHashingPassword, service.ErrGenerateUniqueName:
 		return u.SendServerError(ctx, err)
+	case service.ErrDuplicateEmail:
+		return u.SendBadRequest(ctx, err.Error())
 	}
-	userName := registerRequest.FirstName + registerRequest.LastName
-	if user.UserName, err = common.GenerateUniqueUserName(u.userDao, userName); err != nil {
-		log.Println("Error when generating username ", err)
-		return u.SendServerError(ctx, err)
-	}
-
-	if err := u.userDao.Save(&user); err != nil {
-		if _, e := u.userDao.Find("email=?", user.Email); e == nil {
-			return u.SendBadRequestWithError(ctx, "Email is already exist", err)
-		}
-		return u.SendServerError(ctx, err)
-	}
-
-	emailVerificationToken, err := u.sendVerification(ctx, user)
+	emailVerificationToken, err := u.sendVerification(ctx, *user)
 	if err != nil {
 		return u.SendServerError(ctx, err)
 	}
@@ -93,26 +86,6 @@ func (u *UserController) Register(ctx *fiber.Ctx) error {
 	}, "Register user success please active your email to start")
 }
 
-func (u *UserController) sendVerification(ctx *fiber.Ctx, user models.User) (string, error) {
-	oneMonth := time.Hour * 24 * 30
-	emailVerificationToken, err := u.generateToken(ctx, common.JSON{"email": user.Email}, oneMonth)
-	user.VerificationToken = emailVerificationToken
-	if err := u.userDao.Save(&user); err != nil {
-		return "", u.SendServerError(ctx, err)
-	}
-
-	if err != nil {
-		return "", err
-	}
-	emailResponse, err := u.notificationService.SendMail(user.Email, "Verification Email",
-		htmltemplates.BuildRegistrationTemplate(user.UserName,
-			fmt.Sprintf(os.Getenv("GATEWAY_BASE_FRONTEND_URL")+"/v1/user/verification/token=%s&email=%s", emailVerificationToken, user.Email),
-		),
-	)
-	u.handleEmailResponse(err, emailResponse)
-	return emailVerificationToken, nil
-}
-
 func (u *UserController) Login(ctx *fiber.Ctx) error {
 	var loginRequest request.LoginRequest
 	var err error
@@ -124,7 +97,7 @@ func (u *UserController) Login(ctx *fiber.Ctx) error {
 	if isValid, errors := validators.Validate(&loginRequest); !isValid {
 		return u.SendBadRequestWithError(ctx, "Check invalid form before proceed", errors)
 	}
-	user, err := u.userDao.Find("email=?", loginRequest.Email)
+	user, err := u.service.FindByEmail(loginRequest.Email)
 	if err != nil {
 		log.Println("Error when finding user ", err)
 		if err == dao.ErrRecordNotFound {
@@ -151,18 +124,6 @@ func (u *UserController) Login(ctx *fiber.Ctx) error {
 	}, "Login success")
 }
 
-func (u *UserController) handleEmailResponse(err error, emailResponse *service.SendMailResponse) {
-	if err != nil {
-		log.Println("Error when sending email ", err)
-	} else {
-		if emailResponse.Success {
-			log.Println("Send email success")
-		} else {
-			log.Println("Send email failed")
-		}
-	}
-}
-
 func (u *UserController) ActiveAccount(ctx *fiber.Ctx) error {
 	var err error
 	var activateAccountRequest request.ActivateAccountRequest
@@ -173,51 +134,23 @@ func (u *UserController) ActiveAccount(ctx *fiber.Ctx) error {
 	if isValid, errors := validators.Validate(&activateAccountRequest); !isValid {
 		return u.SendBadRequestWithError(ctx, "Check invalid form before proceed", errors)
 	}
-	var user *models.User
-	if user, err = u.userDao.Find("email=?", activateAccountRequest.Email); err != nil {
-		if err == dao.ErrRecordNotFound {
-			return u.SendNotFound(ctx, "User not found")
-		}
-	}
-	if user.Verified {
-		return u.SendBadRequest(ctx, "User is already verified")
-	}
-	if user.VerificationToken != activateAccountRequest.Token {
-		return u.SendBadRequest(ctx, "Invalid token")
-	}
-	claim, err := common.ExtractFromString(activateAccountRequest.Token)
+	err = u.service.Verify(activateAccountRequest.Email, activateAccountRequest.Token)
 	if err != nil {
-		return u.SendBadRequest(ctx, "Invalid token")
-	}
-	if err := claim.Valid(); err != nil {
-		return u.SendBadRequest(ctx, "Token is expired"+err.Error())
-	}
-	user.Verified = true
-	if err := u.userDao.Save(user); err != nil {
-		return u.SendServerError(ctx, err)
+		switch err {
+		case service.ErrUserAlreadyVerified, service.ErrInvalidToken:
+			return u.SendBadRequest(ctx, err.Error())
+		case service.ErrRecordNotfound:
+			return u.SendNotFound(ctx, err.Error())
+		default:
+			return u.SendServerError(ctx, err)
+		}
 	}
 	return u.SendOK(ctx, response.ActivateAccountResponse{}, "Account activated")
 }
 
-func (u *UserController) generateToken(ctx *fiber.Ctx, data common.JSON, duration time.Duration) (string, error) {
-	emailVerificationToken, err := common.GenerateToken(data, duration)
-	if err != nil {
-		return "", u.SendServerError(ctx, err)
-	}
-	return emailVerificationToken, nil
-}
-
-func (u *UserController) AuthTest(ctx *fiber.Ctx) error {
-	userId := ctx.Locals("user_id").(uint)
-	return u.SendOK(ctx, common.JSON{
-		"message": "Auth success",
-		"user_id": userId,
-	}, "Auth test success")
-}
-
 func (u *UserController) ResendVerification(ctx *fiber.Ctx) error {
 	userId := ctx.Locals("user_id").(uint)
-	user, err := u.userDao.Find("id=?", userId)
+	user, err := u.service.FindByID(userId)
 	if err != nil {
 		if err == dao.ErrRecordNotFound {
 			return u.SendNotFound(ctx, "Not found user")
@@ -231,4 +164,39 @@ func (u *UserController) ResendVerification(ctx *fiber.Ctx) error {
 		"token": emailVerificationToken,
 		"email": user.Email,
 	}, "Send verification success")
+}
+
+func (u *UserController) FindAccount(ctx *fiber.Ctx) error {
+	email := ctx.Query("email")
+	user, err := u.service.FindByEmail(email)
+	if err != nil {
+		if err == dao.ErrRecordNotFound {
+			return u.SendNotFound(ctx, "Not found email "+email)
+		}
+		return u.SendServerError(ctx, err)
+	}
+	return u.SendOK(ctx, common.JSON{
+		"email":   user.Email,
+		"picture": user.Picture,
+	}, "Found user for email")
+}
+
+func (u *UserController) SendResetPassword(ctx *fiber.Ctx) error {
+	var resetPasswordRequest request.ResetPasswordRequest
+	if err := ctx.BodyParser(&resetPasswordRequest); err != nil {
+		return u.InvalidFormResponse(ctx, err)
+	}
+	code, err := u.service.ResetPassword(resetPasswordRequest.Email)
+	if err != nil {
+		switch err {
+		case dao.ErrRecordNotFound:
+			return u.SendNotFound(ctx, "Not found user for email "+resetPasswordRequest.Email)
+		default:
+			return u.SendServerError(ctx, err)
+		}
+	}
+	u.handleSendEmailResponse(u.notificationService.SendMail(resetPasswordRequest.Email, "Reset password ",
+		htmltemplates.BuildResetPasswordTemplate(resetPasswordRequest.Email, code),
+	))
+	return u.SendOK(ctx, common.JSON{}, "Sent email to "+resetPasswordRequest.Email+" please check your mail to complete the process")
 }
