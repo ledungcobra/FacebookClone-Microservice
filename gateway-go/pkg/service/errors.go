@@ -9,4 +9,5 @@ var (
 	ErrUserAlreadyVerified = errors.New("user already verified")
 	ErrRecordNotfound      = errors.New("record not found")
 	ErrInvalidToken        = errors.New("invalid token")
+	ErrPasswordNotMatch    = errors.New("password and re-password do not match")
 )

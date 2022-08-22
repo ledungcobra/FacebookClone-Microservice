@@ -1,12 +1,13 @@
 import Cookies from "js-cookie";
+import {LOGIN, LOGOUT, VERIFIED} from "../common/constants";
 
 const userReducer = function (state = Cookies.get('user') ? JSON.parse(Cookies.get('user')) : null, action) {
     switch (action.type) {
-        case 'LOGIN':
+        case LOGIN:
             return action.payload;
-        case 'VERIFIED':
+        case VERIFIED:
             return {...state, verified: action.payload};
-        case 'LOGOUT':
+        case LOGOUT:
             Cookies.remove('user')
             return null
         default:

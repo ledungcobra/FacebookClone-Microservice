@@ -106,7 +106,7 @@ function LoginForm({setShowRegister}) {
                         </Form>
                     )}
                 </Formik>
-                <Link to="/forgot" className="forgot_password">
+                <Link to="/reset" className="forgot_password">
                     Forgotten password?
                 </Link>
                 <div className="sign_splitter"></div>

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"github.com/pkg/errors"
 	"ledungcobra/gateway-go/pkg/common"
 	"ledungcobra/gateway-go/pkg/controllers/users/request"
@@ -12,10 +13,11 @@ import (
 
 type UserService struct {
 	userDao interfaces.IUserDAO
+	codeDao interfaces.ICommonDao[models.Code]
 }
 
-func NewUserService(userDao interfaces.IUserDAO) *UserService {
-	return &UserService{userDao: userDao}
+func NewUserService(userDao interfaces.IUserDAO, codeDao interfaces.ICommonDao[models.Code]) *UserService {
+	return &UserService{userDao: userDao, codeDao: codeDao}
 }
 
 func (u *UserService) FindByEmail(email string) (*models.User, error) {
@@ -97,4 +99,54 @@ func (u *UserService) Register(registerRequest request.RegisterRequest) (*models
 
 func (u *UserService) FindByID(id uint) (*models.User, error) {
 	return u.userDao.Find("id=?", id)
+}
+
+func (u *UserService) VerifyCode(code string, email string) bool {
+	user, err := u.FindByEmail(email)
+	if err != nil {
+		return false
+	}
+	dbCode, err := u.codeDao.Find("user_id=?", user.ID)
+	if err != nil {
+		return false
+	}
+	return code == dbCode.Code
+}
+
+func (u *UserService) ChangePassword(changePasswordRequest request.ChangePasswordRequest) error {
+	var err error
+	if changePasswordRequest.Password != changePasswordRequest.ConfPassword {
+		return ErrPasswordNotMatch
+	}
+	claim, err := common.ExtractFromString(changePasswordRequest.Token)
+	if err != nil {
+		log.Println("Cannot extract from string")
+		return ErrInvalidToken
+	}
+	if err := claim.Valid(); err != nil {
+		log.Println("Claim invalid")
+		return ErrInvalidToken
+	}
+	var data common.JSON
+	if err := json.Unmarshal([]byte(claim.Subject), &data); err != nil {
+		return err
+	}
+	userId, ok := data["user_id"].(float64)
+	if !ok {
+		log.Println("Not found user_id")
+		return ErrInvalidToken
+	}
+
+	user, err := u.FindByEmail(changePasswordRequest.Email)
+	if user.ID != uint(userId) {
+		log.Println("User id and user.Id do not match")
+		return ErrInvalidToken
+	}
+	if user.Password, err = common.HashPassword(changePasswordRequest.Password); err != nil {
+		return ErrHashingPassword
+	}
+	if err := u.userDao.Save(user); err != nil {
+		return err
+	}
+	return nil
 }

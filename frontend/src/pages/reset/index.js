@@ -8,9 +8,9 @@ import SendEmail from "./SendEmail";
 import CodeVerification from "./CodeVerification";
 import Footer from "../../components/login/Footer";
 import ChangePassword from "./ChangePassword";
-import {DotLoader} from "react-spinners";
 
 export default function Reset() {
+
     const {user} = useSelector((state) => ({...state}));
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -22,6 +22,7 @@ export default function Reset() {
     const [error, setError] = useState("");
     const [userInfo, setUserInfo] = useState({})
     const [loading, setLoading] = useState(false)
+    const [token, setToken] = useState('');
 
     const logout = () => {
         Cookies.set("user", "");
@@ -64,15 +65,31 @@ export default function Reset() {
                         setLoading={setLoading}
                         setUserInfo={setUserInfo}
                         setVisible={setVisible}
+                        loading={loading}
                     />
                 )}
-                {visible === 1 && <SendEmail userInfo={userInfo} user={user}/>}
+                {visible === 1 &&
+                    <SendEmail
+                        userInfo={userInfo}
+                        error={error}
+                        setError={setError}
+                        setLoading={setLoading}
+                        setUserInfo={setUserInfo}
+                        setVisible={setVisible}
+                        loading={loading}
+                    />}
                 {visible === 2 && (
                     <CodeVerification
                         user={user}
                         code={code}
                         setCode={setCode}
                         error={error}
+                        setError={setError}
+                        loading={loading}
+                        setLoading={setLoading}
+                        userInfo={userInfo}
+                        setVisible={setVisible}
+                        setToken={setToken}
                     />
                 )}
                 {visible === 3 && (
@@ -81,6 +98,12 @@ export default function Reset() {
                         conf_password={conf_password}
                         setConf_password={setConf_password}
                         setPassword={setPassword}
+                        token={token}
+                        setLoading={setLoading}
+                        userInfo={userInfo}
+                        error={error}
+                        setError={setError}
+                        loading={loading}
                     />
                 )}
 

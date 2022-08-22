@@ -3,8 +3,18 @@ import {Link} from "react-router-dom";
 import LoginInput from "../../components/inputs/loginInput";
 import * as Yup from "yup";
 import {axiosMain} from "../../axios/axiosMain";
+import PropagateLoader from "react-spinners/PropagateLoader";
 
-export default function SearchAccount({email, setEmail, error, setError, setLoading, setUserInfo, setVisible}) {
+export default function SearchAccount({
+                                          email,
+                                          setEmail,
+                                          error,
+                                          setError,
+                                          setLoading,
+                                          setUserInfo,
+                                          setVisible,
+                                          loading
+                                      }) {
 
     const validateEmail = Yup.object({
         email: Yup.string()
@@ -54,6 +64,7 @@ export default function SearchAccount({email, setEmail, error, setError, setLoad
                             placeholder="Email address or phone number"
                         />
                         {error && <div className="error_text">{error}</div>}
+                        {loading && <PropagateLoader/>}
                         <div className="reset_form_btns">
                             <Link to="/login" className="gray_btn">
                                 Cancel

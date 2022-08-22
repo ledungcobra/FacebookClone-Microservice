@@ -11,6 +11,7 @@ import useQuery from "../../hooks/useQuery";
 import {axiosMain} from "../../axios/axiosMain";
 import Cookies from 'js-cookie'
 import {useNavigate} from "react-router-dom";
+import {VERIFIED} from "../../common/constants";
 
 function Activate() {
     const user = useSelector(state => state.user);
@@ -37,7 +38,7 @@ function Activate() {
             })
             setSuccess(data.message)
             Cookies.set('user', JSON.stringify({...user, verified: true}))
-            dispatch({type: 'VERIFIED', verified: true})
+            dispatch({type: VERIFIED, verified: true})
         } catch (e) {
             setError(e.response.data.message)
         } finally {

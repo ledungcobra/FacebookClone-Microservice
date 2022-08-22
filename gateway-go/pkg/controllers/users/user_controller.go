@@ -24,7 +24,6 @@ type UserController struct {
 	userDao interfaces.IUserDAO
 	base.BaseController
 	notificationService interfaces.INotificationService
-	codeDao             interfaces.ICommonDao[models.Code]
 	service             *service.UserService
 }
 
@@ -35,8 +34,7 @@ func NewUserController(userDao interfaces.IUserDAO,
 		userDao:             userDao,
 		BaseController:      base.BaseController{},
 		notificationService: notificationService,
-		codeDao:             dao.NewCommonDao[models.Code](db),
-		service:             service.NewUserService(userDao),
+		service:             service.NewUserService(userDao, dao.NewCommonDao[models.Code](db)),
 	}
 	return this
 }
@@ -49,6 +47,8 @@ func (u *UserController) RegisterUserRouter(apiRouter fiber.Router) {
 	userRouter.Post("/sendVerification", middlewares.Protected, u.ResendVerification)
 	userRouter.Get("/", u.FindAccount)
 	userRouter.Post("/resetPassword", u.SendResetPassword)
+	userRouter.Post("/verifyCode", u.VerifyCode)
+	userRouter.Post("/changePassword", u.ChangePassword)
 }
 
 func (u *UserController) Register(ctx *fiber.Ctx) error {
@@ -199,4 +199,48 @@ func (u *UserController) SendResetPassword(ctx *fiber.Ctx) error {
 		htmltemplates.BuildResetPasswordTemplate(resetPasswordRequest.Email, code),
 	))
 	return u.SendOK(ctx, common.JSON{}, "Sent email to "+resetPasswordRequest.Email+" please check your mail to complete the process")
+}
+
+func (u *UserController) VerifyCode(ctx *fiber.Ctx) error {
+	var codeVerificationRequest request.CodeVerificationRequest
+	if err := ctx.BodyParser(&codeVerificationRequest); err != nil {
+		return u.InvalidFormResponse(ctx, err)
+	}
+	if ok, errs := validators.Validate(codeVerificationRequest); !ok {
+		return u.SendBadRequestWithError(ctx, "Form validation failed", errs)
+	}
+	if isValid := u.service.VerifyCode(codeVerificationRequest.Code, codeVerificationRequest.Email); !isValid {
+		return u.SendBadRequest(ctx, "Invalid code")
+	}
+	user, _ := u.service.FindByEmail(codeVerificationRequest.Email)
+	token, _ := u.generateToken(ctx, common.JSON{"user_id": user.ID}, time.Hour)
+	return u.SendOK(ctx, common.JSON{
+		"token": token,
+	}, "Verify code successfully")
+}
+
+func (u *UserController) ChangePassword(ctx *fiber.Ctx) error {
+	var changePasswordRequest request.ChangePasswordRequest
+	if err := ctx.BodyParser(&changePasswordRequest); err != nil {
+		return u.InvalidFormResponse(ctx, err)
+	}
+	if ok, errs := validators.Validate(changePasswordRequest); !ok {
+		return u.SendBadRequestWithError(ctx, "Check your request body before proceed", errs)
+	}
+	err := u.service.ChangePassword(changePasswordRequest)
+	if err != nil {
+		switch err {
+		case service.ErrHashingPassword:
+			return u.SendServerError(ctx, err)
+		case service.ErrInvalidToken:
+			return u.SendBadRequest(ctx, "Invalid token")
+		case service.ErrPasswordNotMatch:
+			return u.SendBadRequest(ctx, "Password do not match")
+		default:
+			log.Println(err)
+			return u.SendBadRequest(ctx, "An error occur when proceed change password")
+		}
+
+	}
+	return u.SendOK(ctx, nil, "Change password success")
 }
