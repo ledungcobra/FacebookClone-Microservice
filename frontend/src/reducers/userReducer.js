@@ -4,6 +4,11 @@ const userReducer = function (state = Cookies.get('user') ? JSON.parse(Cookies.g
     switch (action.type) {
         case 'LOGIN':
             return action.payload;
+        case 'VERIFIED':
+            return {...state, verified: action.payload};
+        case 'LOGOUT':
+            Cookies.remove('user')
+            return null
         default:
             return state;
     }

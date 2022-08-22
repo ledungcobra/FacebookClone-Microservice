@@ -40,7 +40,7 @@ func TestJWTTokenValid(t *testing.T) {
 			}
 
 			time.Sleep(tt.args.expired - 1*time.Second)
-			token, err := ExtractToken(generatedToken)
+			token, err := extractToken(generatedToken)
 			if err != nil {
 				t.Error("verify token error")
 				return
@@ -79,7 +79,7 @@ func TestJWTTokenInvalid(t *testing.T) {
 			}
 
 			time.Sleep(tt.args.expired + 500*time.Millisecond)
-			token, err := ExtractToken(generatedToken)
+			token, err := extractToken(generatedToken)
 			if err == nil {
 				t.Error("Should return error in case of token invalid")
 			}

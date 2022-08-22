@@ -12,7 +12,7 @@ func SetBeforeMiddlewares(app *fiber.App) {
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Methods",
+		AllowHeaders: "Origin, Content-Type, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Methods, Authorization",
 	}))
 }
 

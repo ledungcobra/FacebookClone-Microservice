@@ -5,6 +5,7 @@ import (
 	"ledungcobra/gateway-go/pkg/controllers/users/response"
 	"ledungcobra/gateway-go/pkg/dao"
 	"ledungcobra/gateway-go/pkg/htmltemplates"
+	"ledungcobra/gateway-go/pkg/middlewares"
 	"ledungcobra/gateway-go/pkg/models"
 	"ledungcobra/gateway-go/pkg/service"
 	"log"
@@ -39,8 +40,11 @@ func NewUserController(userDao interfaces.IUserDAO,
 func (u *UserController) RegisterUserRouter(apiRouter fiber.Router) {
 	userRouter := apiRouter.Group("/users")
 	userRouter.Post("/register", u.Register)
-	userRouter.Post("/activate", u.ActiveAccount)
 	userRouter.Post("/login", u.Login)
+	userRouter.Post("/activate", u.ActiveAccount)
+	userRouter.Get("/auth", middlewares.Protected, u.AuthTest)
+	userRouter.Post("/sendVerification", middlewares.Protected, u.ResendVerification)
+
 }
 
 func (u *UserController) Register(ctx *fiber.Ctx) error {
@@ -72,21 +76,11 @@ func (u *UserController) Register(ctx *fiber.Ctx) error {
 		}
 		return u.SendServerError(ctx, err)
 	}
-	emailVerificationToken, err := u.generateToken(ctx, common.JSON{"email": user.Email}, time.Hour)
-	user.VerificationToken = emailVerificationToken
-	if err := u.userDao.Save(&user); err != nil {
+
+	emailVerificationToken, err := u.sendVerification(ctx, user)
+	if err != nil {
 		return u.SendServerError(ctx, err)
 	}
-
-	if err != nil {
-		return err
-	}
-	emailResponse, err := u.notificationService.SendMail(user.Email, "Verification Email",
-		htmltemplates.BuildRegistrationTemplate(user.UserName,
-			fmt.Sprintf(os.Getenv("GATEWAY_BASE_FRONTEND_URL")+"/v1/user/verification/token=%s&email=%s", emailVerificationToken, user.Email),
-		),
-	)
-	u.handleEmailResponse(err, emailResponse)
 	return u.SendCreated(ctx, response.RegisterResponse{
 		Success:   true,
 		UserName:  user.UserName,
@@ -97,6 +91,26 @@ func (u *UserController) Register(ctx *fiber.Ctx) error {
 		Verified:  user.Verified,
 		Token:     emailVerificationToken,
 	}, "Register user success please active your email to start")
+}
+
+func (u *UserController) sendVerification(ctx *fiber.Ctx, user models.User) (string, error) {
+	oneMonth := time.Hour * 24 * 30
+	emailVerificationToken, err := u.generateToken(ctx, common.JSON{"email": user.Email}, oneMonth)
+	user.VerificationToken = emailVerificationToken
+	if err := u.userDao.Save(&user); err != nil {
+		return "", u.SendServerError(ctx, err)
+	}
+
+	if err != nil {
+		return "", err
+	}
+	emailResponse, err := u.notificationService.SendMail(user.Email, "Verification Email",
+		htmltemplates.BuildRegistrationTemplate(user.UserName,
+			fmt.Sprintf(os.Getenv("GATEWAY_BASE_FRONTEND_URL")+"/v1/user/verification/token=%s&email=%s", emailVerificationToken, user.Email),
+		),
+	)
+	u.handleEmailResponse(err, emailResponse)
+	return emailVerificationToken, nil
 }
 
 func (u *UserController) Login(ctx *fiber.Ctx) error {
@@ -171,13 +185,12 @@ func (u *UserController) ActiveAccount(ctx *fiber.Ctx) error {
 	if user.VerificationToken != activateAccountRequest.Token {
 		return u.SendBadRequest(ctx, "Invalid token")
 	}
-	token, err := common.ExtractToken(user.VerificationToken)
+	claim, err := common.ExtractFromString(activateAccountRequest.Token)
 	if err != nil {
-		return u.SendBadRequestWithError(ctx, "Invalid token", err)
+		return u.SendBadRequest(ctx, "Invalid token")
 	}
-
-	if err := token.Claims.Valid(); err != nil {
-		return u.SendBadRequestWithError(ctx, "Invalid token", err)
+	if err := claim.Valid(); err != nil {
+		return u.SendBadRequest(ctx, "Token is expired"+err.Error())
 	}
 	user.Verified = true
 	if err := u.userDao.Save(user); err != nil {
@@ -192,4 +205,30 @@ func (u *UserController) generateToken(ctx *fiber.Ctx, data common.JSON, duratio
 		return "", u.SendServerError(ctx, err)
 	}
 	return emailVerificationToken, nil
+}
+
+func (u *UserController) AuthTest(ctx *fiber.Ctx) error {
+	userId := ctx.Locals("user_id").(uint)
+	return u.SendOK(ctx, common.JSON{
+		"message": "Auth success",
+		"user_id": userId,
+	}, "Auth test success")
+}
+
+func (u *UserController) ResendVerification(ctx *fiber.Ctx) error {
+	userId := ctx.Locals("user_id").(uint)
+	user, err := u.userDao.Find("id=?", userId)
+	if err != nil {
+		if err == dao.ErrRecordNotFound {
+			return u.SendNotFound(ctx, "Not found user")
+		}
+	}
+	emailVerificationToken, err := u.sendVerification(ctx, *user)
+	if err != nil {
+		return u.SendServerError(ctx, err)
+	}
+	return u.SendOK(ctx, common.JSON{
+		"token": emailVerificationToken,
+		"email": user.Email,
+	}, "Send verification success")
 }

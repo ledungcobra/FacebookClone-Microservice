@@ -49,6 +49,7 @@ function LoginForm({setShowRegister}) {
             Cookies.set('user', JSON.stringify(data.data));
             navigate('/')
         } catch (error) {
+            console.log(error)
             setSuccess('')
             const data = error.response.data;
             const errors = data.errors;
