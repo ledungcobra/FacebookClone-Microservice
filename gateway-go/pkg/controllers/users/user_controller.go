@@ -1,12 +1,10 @@
 package users
 
 import (
-	"gorm.io/gorm"
 	"ledungcobra/gateway-go/pkg/controllers/users/response"
 	"ledungcobra/gateway-go/pkg/dao"
 	"ledungcobra/gateway-go/pkg/htmltemplates"
 	"ledungcobra/gateway-go/pkg/middlewares"
-	"ledungcobra/gateway-go/pkg/models"
 	"ledungcobra/gateway-go/pkg/service"
 	"log"
 	"time"
@@ -21,20 +19,16 @@ import (
 )
 
 type UserController struct {
-	userDao interfaces.IUserDAO
 	base.BaseController
 	notificationService interfaces.INotificationService
 	service             *service.UserService
 }
 
-func NewUserController(userDao interfaces.IUserDAO,
-	notificationService interfaces.INotificationService,
-	db *gorm.DB) *UserController {
+func NewUserController(notificationService interfaces.INotificationService, userService *service.UserService) *UserController {
 	this := &UserController{
-		userDao:             userDao,
 		BaseController:      base.BaseController{},
 		notificationService: notificationService,
-		service:             service.NewUserService(userDao, dao.NewCommonDao[models.Code](db)),
+		service:             userService,
 	}
 	return this
 }

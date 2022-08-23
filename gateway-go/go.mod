@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/brianvoe/gofakeit/v6 v6.18.0
+	github.com/cloudinary/cloudinary-go/v2 v2.1.0
 	github.com/gofiber/fiber/v2 v2.36.0
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/go-cmp v0.5.8
@@ -20,7 +21,10 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/creasty/defaults v1.5.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/uuid v1.2.0 // indirect
+	github.com/gorilla/schema v1.2.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

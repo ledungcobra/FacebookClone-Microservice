@@ -1,11 +1,11 @@
 import './style.css'
 import {Feeling, LiveVideo, Photo} from "../../svg";
 
-function CreatePost({user}) {
+function CreatePost({user, setCreatePostVisible}) {
     if (!user) return null
 
     return (
-        <div className='createPost'>
+        <div className='createPost' onClick={() => setCreatePostVisible(true)}>
             <div className="createPost_header">
                 <img src={user.picture} alt=""/>
                 <div className='open_post hover2'>

@@ -16,7 +16,7 @@ func (u *UserController) sendVerification(ctx *fiber.Ctx, user models.User) (str
 	oneMonth := time.Hour * 24 * 30
 	emailVerificationToken, err := u.generateToken(ctx, common.JSON{"email": user.Email}, oneMonth)
 	user.VerificationToken = emailVerificationToken
-	if err := u.userDao.Save(&user); err != nil {
+	if err := u.service.Save(&user); err != nil {
 		return "", u.SendServerError(ctx, err)
 	}
 

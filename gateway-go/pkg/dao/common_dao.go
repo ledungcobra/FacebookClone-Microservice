@@ -16,6 +16,10 @@ func (c CommonDao[T]) Save(object *T) error {
 	return c.db.Save(object).Error
 }
 
+func (c CommonDao[T]) SaveMany(object *[]T) error {
+	return c.db.Save(object).Error
+}
+
 func (c CommonDao[T]) Delete(object any) error {
 	return c.db.Delete(object).Error
 }
@@ -28,6 +32,10 @@ func (c CommonDao[T]) Find(query any, args ...any) (*T, error) {
 		}
 	}
 	return &dest, nil
+}
+
+func (c CommonDao[T]) Update(post *T) error {
+	return c.db.Save(post).Error
 }
 
 func NewCommonDao[T any](db *gorm.DB) *CommonDao[T] {

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"gorm.io/gorm/schema"
 	"log"
 
 	"ledungcobra/gateway-go/pkg/models"
@@ -38,7 +39,13 @@ func (s *SQLConnector) GetDatabase() *gorm.DB {
 
 func (s *SQLConnector) MigrateModels() {
 	log.Println("Migrating to database")
-	if err := s.db.Migrator().AutoMigrate(&models.User{}, &models.Post{}, &models.Code{}); err != nil {
+	if err := s.db.Migrator().AutoMigrate(
+		&models.User{},
+		&models.Post{},
+		&models.Code{},
+		&models.Comment{},
+	); err != nil {
 		log.Panic("Cannot migrate models because of " + err.Error())
 	}
+	schema.RegisterSerializer("json", schema.JSONSerializer{})
 }
