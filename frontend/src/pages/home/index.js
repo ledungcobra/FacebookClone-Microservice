@@ -7,6 +7,7 @@ import Stories from "../../components/home/stories";
 import './style.css'
 import CreatePost from "../../components/createPost";
 import SendVerification from "../../components/sendVerification";
+import CreatePostPopup from "../../components/createPostPopup";
 
 function Home() {
     const user = useSelector(state => state.user);
@@ -20,6 +21,7 @@ function Home() {
                 <CreatePost user={user}/>
             </div>
             <RightHome user={user}/>
+            <CreatePostPopup user={user}/>
         </div>
     );
 }
